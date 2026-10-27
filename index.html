@@ -1,0 +1,1024 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1f33">
+  <meta name="description" content="Detect and identify objects in your images with a full-stack image detection app.">
+  <title>Image Detection</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #0b1f33;
+      --muted: #64748b;
+      --line: #dce7e8;
+      --paper: #081a2b;
+      --surface: #fff;
+      --green: #059669;
+      --green-dark: #047857;
+      --green-pale: #e7f8f0;
+      --green-bright: #34d399;
+      --shadow: 0 24px 70px rgba(1, 10, 20, .28);
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(ellipse at 50% 0%, rgba(5, 150, 105, .16), transparent 44%),
+        var(--paper);
+      color: #fff;
+      font-family: "Poppins", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .app-shell { min-height: 100vh; }
+    .sidebar {
+      position: fixed; z-index: 5; inset: 0 auto 0 0; width: 252px; padding: 26px 16px 18px;
+      display: flex; flex-direction: column; background: rgba(5, 18, 31, .97);
+      border-right: 1px solid rgba(148, 163, 184, .14);
+    }
+    .sidebar .brand { padding: 0 9px; }
+    .sidebar-caption { margin: 38px 10px 12px; color: #718399; font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+    .sidebar-nav { display: grid; gap: 6px; }
+    .nav-link {
+      min-height: 44px; padding: 0 12px; display: flex; align-items: center; gap: 12px;
+      border: 1px solid transparent; border-radius: 9px; color: #b6c5d4; text-decoration: none;
+      font-size: 12px; font-weight: 500; transition: color .18s, background .18s, border-color .18s;
+    }
+    .nav-link svg { flex: 0 0 auto; color: #8fa2b5; }
+    .nav-link:hover { color: #fff; background: rgba(255, 255, 255, .06); }
+    .nav-link:focus-visible { outline: 2px solid var(--green-bright); outline-offset: 2px; }
+    .nav-link[aria-current="page"] {
+      border-color: rgba(52, 211, 153, .18); color: #a7f3d0; background: rgba(5, 150, 105, .15);
+    }
+    .nav-link[aria-current="page"] svg { color: var(--green-bright); }
+    .sidebar-footer {
+      margin-top: auto; padding: 14px 11px 2px; display: flex; align-items: center; gap: 10px;
+      border-top: 1px solid rgba(148, 163, 184, .14);
+    }
+    .sidebar-footer-icon { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 9px; background: rgba(5, 150, 105, .16); color: var(--green-bright); }
+    .sidebar-footer-title { color: #e2e8f0; font-size: 10px; font-weight: 600; }
+    .sidebar-footer-note { margin-top: 3px; color: #8293a5; font-size: 9px; }
+    .app-content { min-width: 0; margin-left: 252px; }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    .topbar {
+      height: 76px;
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(148, 163, 184, .15);
+      background: rgba(8, 26, 43, .94);
+    }
+    .brand { display: flex; align-items: center; gap: 11px; text-decoration: none; color: inherit; }
+    .brand-mark {
+      width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center;
+      color: white; background: var(--green);
+    }
+    .brand-name { font: 700 20px "Poppins", sans-serif; letter-spacing: -.8px; color: #fff; }
+    .top-note { display: flex; align-items: center; gap: 8px; color: #cbd5e1; font-size: 12px; font-weight: 600; }
+    .online-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green-bright); box-shadow: 0 0 0 3px rgba(52, 211, 153, .16); }
+    main { width: min(1192px, calc(100% - 64px)); margin: 0 auto; padding: 48px 0 70px; }
+    .intro { max-width: 700px; margin: 0 auto 37px; text-align: center; }
+    .analytics { margin: 0 0 28px; }
+    .analytics-heading { margin: 0 0 12px; color: #e2e8f0; font: 600 13px "Poppins", sans-serif; letter-spacing: .01em; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .kpi-card {
+      min-height: 112px; padding: 17px 19px; display: flex; align-items: center; gap: 14px;
+      border: 1px solid rgba(226, 232, 240, .82); border-radius: 14px; background: #fff;
+      box-shadow: 0 10px 30px rgba(1, 10, 20, .14);
+    }
+    .kpi-icon {
+      width: 42px; height: 42px; flex: 0 0 auto; display: grid; place-items: center;
+      border-radius: 12px; background: var(--green-pale); color: var(--green);
+    }
+    .kpi-label { margin: 0 0 5px; color: #64748b; font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+    .kpi-value { margin: 0; color: var(--ink); font: 600 27px/1 "Poppins", sans-serif; letter-spacing: -.8px; }
+    .kpi-value small { margin-left: 2px; color: #64748b; font: 500 13px "Poppins", sans-serif; letter-spacing: 0; }
+    .chart-card {
+      margin-top: 14px; padding: 18px 20px; border: 1px solid rgba(226, 232, 240, .82);
+      border-radius: 14px; background: #fff; box-shadow: 0 10px 30px rgba(1, 10, 20, .14);
+    }
+    .chart-heading { margin: 0; color: var(--ink); font: 600 13px "Poppins", sans-serif; }
+    .chart-subtitle { margin: 4px 0 15px; color: #64748b; font-size: 10px; }
+    .object-chart { display: flex; flex-direction: column; gap: 11px; }
+    .object-chart-row { display: grid; grid-template-columns: minmax(90px, 145px) minmax(70px, 1fr) 28px; align-items: center; gap: 12px; }
+    .object-chart-label { overflow: hidden; color: var(--ink); font-size: 11px; font-weight: 600; text-overflow: ellipsis; text-transform: capitalize; white-space: nowrap; }
+    .object-chart-track { height: 9px; overflow: hidden; border-radius: 999px; background: #eaf3ef; }
+    .object-chart-bar { height: 100%; min-width: 5px; border-radius: inherit; background: linear-gradient(90deg, var(--green-dark), var(--green-bright)); transition: width .35s ease; }
+    .object-chart-count { color: var(--green-dark); font: 700 11px "Poppins", sans-serif; text-align: right; }
+    .chart-empty { padding: 15px 0 8px; color: #64748b; font-size: 11px; text-align: center; }
+    .system-status-card {
+      margin-top: 14px; padding: 18px 20px; border: 1px solid rgba(226, 232, 240, .82);
+      border-radius: 14px; background: #fff; color: var(--ink); box-shadow: 0 10px 30px rgba(1, 10, 20, .14);
+    }
+    .system-status-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+    .system-status-title { margin: 0; font: 600 13px "Poppins", sans-serif; }
+    .system-status-updated { color: #64748b; font-size: 9px; text-align: right; }
+    .system-status-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .system-metric { min-width: 0; padding: 12px; border: 1px solid #e5eee9; border-radius: 10px; background: #fbfefd; }
+    .system-metric-label { margin: 0 0 7px; color: #64748b; font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+    .system-metric-value { margin: 0; color: var(--ink); font: 600 20px/1.25 "Poppins", sans-serif; overflow-wrap: anywhere; }
+    .system-metric-detail { min-height: 14px; margin: 6px 0 0; color: #64748b; font-size: 9px; line-height: 1.5; overflow-wrap: anywhere; }
+    .system-metric-track { height: 5px; margin-top: 11px; overflow: hidden; border-radius: 999px; background: #eaf3ef; }
+    .system-metric-bar { display: block; width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--green-dark), var(--green-bright)); transition: width .35s ease; }
+    .network-rates { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+    .network-rate-label { display: block; color: #64748b; font-size: 8px; }
+    .network-rate-value { display: block; margin-top: 2px; color: var(--green-dark); font: 600 11px "Poppins", sans-serif; overflow-wrap: anywhere; }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 8px; padding: 7px 11px; border-radius: 999px;
+      color: #a7f3d0; background: rgba(5, 150, 105, .2); font-size: 11px; font-weight: 700;
+      letter-spacing: .08em; text-transform: uppercase;
+    }
+    h1 { margin: 17px 0 12px; font: 600 clamp(38px, 5vw, 57px)/1.06 "Poppins", sans-serif; letter-spacing: -2.7px; color: #fff; }
+    .intro p { max-width: 530px; margin: 0 auto; color: #bdcbd7; font-size: 15px; line-height: 1.7; }
+    .workspace {
+      min-height: 470px; display: grid; grid-template-columns: minmax(0, 1fr) 325px;
+      overflow: hidden; background: var(--surface); border: 1px solid rgba(226, 232, 240, .82); border-radius: 18px; box-shadow: var(--shadow);
+    }
+    .visual-panel { min-width: 0; padding: 22px; display: flex; flex-direction: column; color: var(--ink); }
+    .panel-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .panel-heading h2 { margin: 0; font: 600 14px "Poppins", sans-serif; }
+    .image-meta { color: var(--muted); font-size: 11px; }
+    .dropzone {
+      position: relative; flex: 1; min-height: 390px; display: grid; place-items: center; overflow: hidden;
+      border: 1px dashed #b7d9ca; border-radius: 12px; background:
+        radial-gradient(ellipse at 15% 20%, rgba(5, 150, 105, .09), transparent 45%),
+        #f8fcfa; transition: border-color .2s, background .2s;
+    }
+    .dropzone.dragging { border-color: var(--green); background-color: #edfaf4; }
+    .empty-state { max-width: 330px; padding: 28px; text-align: center; }
+    .upload-icon {
+      width: 58px; height: 58px; margin: 0 auto 17px; display: grid; place-items: center;
+      border: 1px solid #d9eee4; border-radius: 17px; background: white; color: var(--green);
+      box-shadow: 0 5px 18px rgba(5, 70, 49, .08);
+    }
+    .empty-state h3 { margin: 0 0 7px; font: 600 17px "Poppins", sans-serif; letter-spacing: -.3px; }
+    .empty-state p { margin: 0 0 18px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .upload-actions { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+    .browse-button, .primary-button {
+      min-height: 42px; padding: 0 16px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      border: 0; border-radius: 8px; background: var(--green); color: white; font-size: 12px; font-weight: 700;
+      transition: background .2s, transform .2s;
+    }
+    .browse-button:hover, .primary-button:hover { background: var(--green-dark); transform: translateY(-1px); }
+    .secondary-button {
+      min-height: 42px; padding: 0 14px; display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+      border: 1px solid #cce8da; border-radius: 8px; background: white; color: var(--green-dark);
+      font-size: 12px; font-weight: 700; transition: background .2s, border-color .2s;
+    }
+    .secondary-button:hover { border-color: #7bc7a4; background: #f0faf5; }
+    .file-hint { display: block; margin-top: 12px; color: #9aa29b; font-size: 10px; }
+    .image-stage { position: relative; width: 100%; height: 100%; display: grid; place-items: center; }
+    #previewCanvas { display: block; max-width: 100%; max-height: 100%; object-fit: contain; }
+    .camera-stage { position: relative; width: 100%; height: 100%; min-height: 390px; display: grid; place-items: center; overflow: hidden; background: #071726; }
+    .camera-stage video { display: block; width: 100%; height: 100%; object-fit: contain; }
+    .camera-controls { position: absolute; right: 0; bottom: 16px; left: 0; display: flex; justify-content: center; align-items: center; gap: 12px; }
+    .capture-button { width: 52px; height: 52px; display: grid; place-items: center; border: 3px solid white; border-radius: 50%; background: var(--green); color: white; box-shadow: 0 2px 12px #0008; }
+    .capture-button:hover { background: var(--green-dark); }
+    .capture-button:disabled { cursor: wait; opacity: .65; }
+    .camera-cancel { width: 42px; height: 42px; border-color: #ffffff75; color: white; background: #18211ccc; }
+    .camera-cancel:hover { color: white; background: #18211c; }
+    .stage-tools {
+      position: absolute; right: 12px; top: 12px; display: flex; gap: 7px;
+    }
+    .icon-button {
+      width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid rgba(230,234,230,.9);
+      border-radius: 8px; color: var(--ink); background: rgba(255,255,255,.96); box-shadow: 0 2px 8px rgba(11, 31, 51, .12);
+    }
+    .icon-button:hover { color: var(--green); background: white; }
+    .side-panel { padding: 22px; border-left: 1px solid var(--line); display: flex; flex-direction: column; color: var(--ink); }
+    .side-title { margin: 0; font: 600 14px "Poppins", sans-serif; }
+    .side-subtitle { margin: 5px 0 20px; color: var(--muted); font-size: 11px; line-height: 1.5; }
+    .model-card { padding: 13px; border: 1px solid var(--line); border-radius: 10px; background: #fbfefd; }
+    .model-row { display: flex; align-items: center; gap: 10px; }
+    .model-icon { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; background: var(--green-pale); color: var(--green); }
+    .model-name { font-size: 11px; font-weight: 700; }
+    .model-caption { margin-top: 3px; color: var(--muted); font-size: 10px; }
+    .model-status { margin-left: auto; display: flex; align-items: center; gap: 6px; color: #839087; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; background: #bec8bf; }
+    .status-dot.ready { background: var(--green); }
+    .status-dot.loading { background: var(--green-bright); animation: pulse 1s infinite alternate; }
+    @keyframes pulse { to { opacity: .35; } }
+    .divider { height: 1px; margin: 20px 0; background: var(--line); }
+    .results-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .results-head h3 { margin: 0; font: 600 12px "Poppins", sans-serif; }
+    .count-badge { min-width: 21px; height: 21px; padding: 0 6px; display: grid; place-items: center; border-radius: 7px; background: var(--green-pale); color: var(--green-dark); font-size: 10px; font-weight: 700; }
+    .confidence-label { display: flex; justify-content: space-between; margin: 0 0 8px; color: #78837b; font-size: 10px; }
+    .confidence-label strong { color: var(--ink); font-weight: 700; }
+    input[type="range"] { width: 100%; height: 4px; margin: 0 0 18px; accent-color: var(--green); cursor: pointer; }
+    .confidence-hint { margin: -12px 0 14px; color: #78837b; font-size: 9px; line-height: 1.5; }
+    .results-list { min-height: 108px; display: flex; flex-direction: column; gap: 7px; }
+    .result-empty { padding: 20px 10px; color: #939d95; text-align: center; font-size: 11px; line-height: 1.6; }
+    .result-item { display: flex; align-items: center; gap: 9px; padding: 9px 10px; border: 1px solid #e5eee9; border-radius: 8px; }
+    .result-swatch { width: 8px; height: 8px; flex: 0 0 auto; border-radius: 3px; background: var(--green); }
+    .result-label { flex: 1; color: var(--ink); font-size: 11px; font-weight: 600; text-transform: capitalize; }
+    .result-confidence { color: var(--green); font-size: 10px; font-weight: 700; }
+    .primary-button { width: 100%; min-height: 44px; margin-top: auto; }
+    .primary-button:disabled { cursor: not-allowed; opacity: .48; transform: none; }
+    .notice { min-height: 17px; margin-top: 9px; color: #9a6a32; font-size: 10px; line-height: 1.5; }
+    .privacy-note { display: flex; align-items: flex-start; gap: 7px; margin-top: 11px; color: #879188; font-size: 9px; line-height: 1.55; }
+    .below { display: flex; justify-content: center; gap: 30px; margin: 24px auto 0; color: #bdcbd7; font-size: 10px; }
+    .below span { display: flex; align-items: center; gap: 7px; }
+    .below svg { color: var(--green); }
+    .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    @media (max-width: 760px) {
+      main { width: min(100% - 32px, 560px); padding-top: 42px; }
+      .kpi-grid { gap: 10px; }
+      .kpi-card { min-height: 96px; padding: 13px; gap: 10px; }
+      .kpi-icon { width: 36px; height: 36px; border-radius: 10px; }
+      .kpi-value { font-size: 24px; }
+      .chart-card { padding: 16px; }
+      .system-status-card { padding: 16px; }
+      .system-status-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .object-chart-row { grid-template-columns: minmax(72px, 110px) minmax(50px, 1fr) 24px; gap: 8px; }
+      .workspace { grid-template-columns: 1fr; }
+      .visual-panel { padding: 16px; }
+      .dropzone { min-height: 330px; }
+      .side-panel { padding: 20px 16px; border-left: 0; border-top: 1px solid var(--line); }
+      .primary-button { margin-top: 12px; }
+      .below { flex-wrap: wrap; gap: 12px 20px; }
+    }
+    @media (max-width: 900px) {
+      .sidebar { width: 76px; padding: 22px 9px 16px; align-items: center; }
+      .sidebar .brand { padding: 0; }
+      .sidebar .brand-name, .sidebar-caption, .nav-link-label, .sidebar-footer-copy { display: none; }
+      .sidebar-nav { width: 100%; margin-top: 34px; }
+      .nav-link { width: 48px; min-height: 48px; padding: 0; justify-content: center; }
+      .app-content { margin-left: 76px; }
+      .sidebar-footer { padding: 14px 0 2px; }
+    }
+    @media (max-width: 600px) {
+      .sidebar {
+        inset: auto 0 0; width: 100%; height: 70px; padding: 6px 10px max(6px, env(safe-area-inset-bottom));
+        flex-direction: row; justify-content: center; align-items: stretch; border-top: 1px solid rgba(148, 163, 184, .14);
+        border-right: 0; background: rgba(5, 18, 31, .98);
+      }
+      .sidebar .brand, .sidebar-caption, .sidebar-footer { display: none; }
+      .sidebar-nav { width: min(100%, 440px); margin: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+      .nav-link { width: auto; min-height: 54px; padding: 5px 2px; flex-direction: column; justify-content: center; gap: 3px; font-size: 9px; }
+      .nav-link-label { display: inline; }
+      .app-content { margin-left: 0; padding-bottom: 70px; }
+      .topbar { height: 60px; padding: 0 18px; }
+      main { width: calc(100% - 24px); padding-top: 34px; }
+    }
+    @media (max-width: 440px) {
+      .top-note { font-size: 10px; }
+      main { padding-top: 30px; }
+      h1 { letter-spacing: -1.8px; }
+      .intro { margin-bottom: 26px; }
+      .analytics { margin-bottom: 22px; }
+      .kpi-grid { grid-template-columns: 1fr; gap: 8px; }
+      .kpi-card { min-height: 76px; padding: 12px 14px; }
+      .kpi-value { font-size: 22px; }
+      .object-chart-row { grid-template-columns: minmax(65px, 95px) minmax(40px, 1fr) 22px; gap: 7px; }
+      .system-status-grid { grid-template-columns: 1fr; }
+      .dropzone { min-height: 280px; }
+      .panel-heading { align-items: flex-start; gap: 8px; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Main navigation">
+      <a class="brand" href="#dashboard" aria-label="Image Detection home">
+      <span class="brand-mark" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="12" r="3.4" stroke="currentColor" stroke-width="1.8"/></svg>
+      </span>
+      <span class="brand-name">Image Detection</span>
+      </a>
+      <p class="sidebar-caption">Workspace</p>
+      <nav class="sidebar-nav" aria-label="Workspace">
+        <a class="nav-link" href="#dashboard" aria-label="Dashboard" aria-current="page">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="2.5" y="2.5" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.5"/><rect x="11.5" y="2.5" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.5"/><rect x="2.5" y="11.5" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.5"/><rect x="11.5" y="11.5" width="6" height="6" rx="1.2" stroke="currentColor" stroke-width="1.5"/></svg>
+          <span class="nav-link-label">Dashboard</span>
+        </a>
+        <a class="nav-link" href="#detection" aria-label="Detection">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 7V4a1 1 0 0 1 1-1h3m6 0h3a1 1 0 0 1 1 1v3m0 6v3a1 1 0 0 1-1 1h-3m-6 0H4a1 1 0 0 1-1-1v-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="10" cy="10" r="3" stroke="currentColor" stroke-width="1.5"/></svg>
+          <span class="nav-link-label">Detection</span>
+        </a>
+        <a class="nav-link" href="#analytics" aria-label="Analytics">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 16.5V10m7 6.5V3.5m7 13V7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M1.8 17.5h16.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          <span class="nav-link-label">Analytics</span>
+        </a>
+        <a class="nav-link" href="#system-status" aria-label="System status">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M2.5 10h3l2-5 3.2 10 2.1-5h4.7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="2.5" cy="10" r="1" fill="currentColor"/><circle cx="17.5" cy="10" r="1" fill="currentColor"/></svg>
+          <span class="nav-link-label">System status</span>
+        </a>
+        <a class="nav-link" href="#settings" aria-label="Settings">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 7.2a2.8 2.8 0 1 0 0 5.6 2.8 2.8 0 0 0 0-5.6Z" stroke="currentColor" stroke-width="1.5"/><path d="m16.2 11.2 1.1.9-1.5 2.6-1.4-.5a6.7 6.7 0 0 1-1.7 1l-.2 1.5h-3l-.3-1.5a6.7 6.7 0 0 1-1.7-1l-1.4.5-1.5-2.6 1.1-.9a6.4 6.4 0 0 1 0-2.4l-1.1-.9 1.5-2.6 1.4.5a6.7 6.7 0 0 1 1.7-1l.3-1.5h3l.2 1.5a6.7 6.7 0 0 1 1.7 1l1.4-.5 1.5 2.6-1.1.9a6.4 6.4 0 0 1 0 2.4Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+          <span class="nav-link-label">Settings</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <span class="sidebar-footer-icon" aria-hidden="true">
+          <svg width="17" height="17" viewBox="0 0 20 20" fill="none"><path d="M10 2.5 3.5 6v8L10 17.5l6.5-3.5V6L10 2.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="m3.8 6.2 6.2 3.5 6.2-3.5M10 9.8v7.1" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="sidebar-footer-copy"><span class="sidebar-footer-title">YOLO11 small</span><span class="sidebar-footer-note">Detection engine</span></span>
+      </div>
+    </aside>
+    <div class="app-content">
+      <header class="topbar">
+        <div class="top-note"><span class="online-dot"></span> Server-powered image detection</div>
+      </header>
+  <main>
+    <section class="intro" id="dashboard">
+      <span class="eyebrow"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M2 5V3a1 1 0 0 1 1-1h2M11 2h2a1 1 0 0 1 1 1v2M14 11v2a1 1 0 0 1-1 1h-2M5 14H3a1 1 0 0 1-1-1v-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.5"/></svg> AI image recognition</span>
+      <h1>See what's in your image.</h1>
+      <p>Drop in a photo and let AI find the objects inside. A dedicated detection model processes your image on the server.</p>
+    </section>
+    <section class="analytics" id="analytics" aria-labelledby="analyticsHeading">
+      <h2 class="analytics-heading" id="analyticsHeading">Detection analytics</h2>
+      <div class="kpi-grid">
+        <article class="kpi-card">
+          <span class="kpi-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 5.5h14v10H3zM6 3v5m8-5v5M6 12h2m4 0h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 10h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </span>
+          <div><p class="kpi-label">Total objects detected</p><p class="kpi-value" id="totalObjectsKpi">0</p></div>
+        </article>
+        <article class="kpi-card">
+          <span class="kpi-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2.5a7.5 7.5 0 1 0 7.5 7.5M10 6v4l2.8 1.7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.8 2.8v4m-2-2h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </span>
+          <div><p class="kpi-label">Average confidence</p><p class="kpi-value" id="averageConfidenceKpi">—</p></div>
+        </article>
+        <article class="kpi-card">
+          <span class="kpi-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="5.5" height="5.5" rx="1.2" stroke="currentColor" stroke-width="1.5"/><rect x="11.5" y="3" width="5.5" height="5.5" rx="1.2" stroke="currentColor" stroke-width="1.5"/><rect x="3" y="11.5" width="5.5" height="5.5" rx="1.2" stroke="currentColor" stroke-width="1.5"/><rect x="11.5" y="11.5" width="5.5" height="5.5" rx="1.2" stroke="currentColor" stroke-width="1.5"/></svg>
+          </span>
+          <div><p class="kpi-label">Different object classes</p><p class="kpi-value" id="objectClassesKpi">0</p></div>
+        </article>
+      </div>
+      <section class="chart-card" aria-labelledby="objectChartHeading">
+        <h3 class="chart-heading" id="objectChartHeading">Object-wise count</h3>
+        <p class="chart-subtitle">Number of detections for each object class</p>
+        <div class="object-chart" id="objectCountChart" role="list" aria-label="Detection counts by object class">
+          <div class="chart-empty">Upload an image to see object counts.</div>
+        </div>
+      </section>
+    <section class="system-status-card" id="system-status" aria-labelledby="systemStatusHeading">
+      <div class="system-status-heading">
+        <h2 class="system-status-title" id="systemStatusHeading">System status</h2>
+        <span class="system-status-updated" id="systemStatusUpdated" role="status">Waiting for server metrics…</span>
+      </div>
+      <div class="system-status-grid">
+        <article class="system-metric">
+          <h3 class="system-metric-label">CPU usage</h3>
+          <p class="system-metric-value"><span id="cpuUsageValue">—</span><small>%</small></p>
+          <div class="system-metric-track" role="progressbar" aria-label="CPU usage" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="cpuUsageProgress"><span class="system-metric-bar" id="cpuUsageBar"></span></div>
+          <p class="system-metric-detail" id="cpuUsageDetail">Waiting for metrics…</p>
+        </article>
+        <article class="system-metric">
+          <h3 class="system-metric-label">Memory usage</h3>
+          <p class="system-metric-value"><span id="memoryUsageValue">—</span><small>%</small></p>
+          <div class="system-metric-track" role="progressbar" aria-label="Memory usage" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="memoryUsageProgress"><span class="system-metric-bar" id="memoryUsageBar"></span></div>
+          <p class="system-metric-detail" id="memoryUsageDetail">Waiting for metrics…</p>
+        </article>
+        <article class="system-metric">
+          <h3 class="system-metric-label">Storage</h3>
+          <p class="system-metric-value"><span id="storageUsageValue">—</span><small>%</small></p>
+          <div class="system-metric-track" role="progressbar" aria-label="Storage usage" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="storageUsageProgress"><span class="system-metric-bar" id="storageUsageBar"></span></div>
+          <p class="system-metric-detail" id="storageUsageDetail">Waiting for metrics…</p>
+        </article>
+        <article class="system-metric">
+          <h3 class="system-metric-label">Network</h3>
+          <div class="network-rates">
+            <div><span class="network-rate-label">Received</span><span class="network-rate-value" id="networkReceivedValue">Measuring…</span></div>
+            <div><span class="network-rate-label">Sent</span><span class="network-rate-value" id="networkSentValue">Measuring…</span></div>
+          </div>
+          <p class="system-metric-detail" id="networkUsageDetail">Live server network throughput</p>
+        </article>
+      </div>
+    </section>
+    </section>
+    <section class="workspace" id="detection" aria-label="Image detection workspace">
+      <div class="visual-panel">
+        <div class="panel-heading">
+          <h2>Image preview</h2>
+          <span class="image-meta" id="imageMeta">No image selected</span>
+        </div>
+        <div class="dropzone" id="dropzone">
+          <div class="empty-state" id="emptyState">
+            <div class="upload-icon" aria-hidden="true">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 14.5v3A2.5 2.5 0 0 0 7.5 20h9a2.5 2.5 0 0 0 2.5-2.5v-3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <h3>Drop your image here</h3>
+            <p>Choose a photo to detect objects in it. The image is sent to the app server and is not saved.</p>
+            <div class="upload-actions">
+              <button class="browse-button" id="browseButton" type="button">
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M8 11V2m0 0L4.5 5.5M8 2l3.5 3.5M2.5 10v3a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Browse files
+              </button>
+              <button class="secondary-button" id="cameraButton" type="button">
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2 5a1.5 1.5 0 0 1 1.5-1.5h2l1-1h3l1 1h2A1.5 1.5 0 0 1 14 5v7a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 12V5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><circle cx="8" cy="8.5" r="2.5" stroke="currentColor" stroke-width="1.3"/></svg>
+                Use camera
+              </button>
+            </div>
+            <span class="file-hint">JPG, PNG, WEBP · Max 15 MB</span>
+            <span class="file-hint">Camera access requires permission and localhost or HTTPS.</span>
+          </div>
+          <div class="image-stage" id="imageStage" hidden>
+            <canvas id="previewCanvas" aria-label="Uploaded image with object detection boxes"></canvas>
+            <div class="stage-tools">
+              <button class="icon-button" id="changeImageButton" type="button" title="Choose another image" aria-label="Choose another image">
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M10 13V3m0 0L6.5 6.5M10 3l3.5 3.5M4 11v4.5A1.5 1.5 0 0 0 5.5 17h9a1.5 1.5 0 0 0 1.5-1.5V11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <button class="icon-button" id="stageCameraButton" type="button" title="Take a photo" aria-label="Take a photo">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2 5a1.5 1.5 0 0 1 1.5-1.5h2l1-1h3l1 1h2A1.5 1.5 0 0 1 14 5v7a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 12V5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><circle cx="8" cy="8.5" r="2.5" stroke="currentColor" stroke-width="1.3"/></svg>
+              </button>
+              <button class="icon-button" id="clearButton" type="button" title="Remove image" aria-label="Remove image">
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M4 5.5h12M8 5.5V3.8h4v1.7m2.5 0-.6 10.1a1.5 1.5 0 0 1-1.5 1.4H7.6a1.5 1.5 0 0 1-1.5-1.4L5.5 5.5m2.8 3v5m3.4-5v5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="camera-stage" id="cameraStage" hidden>
+            <video id="cameraVideo" autoplay muted playsinline aria-label="Live camera preview"></video>
+            <div class="camera-controls">
+              <button class="icon-button camera-cancel" id="cancelCameraButton" type="button" title="Cancel camera" aria-label="Cancel camera">
+                <svg width="17" height="17" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+              </button>
+              <button class="capture-button" id="captureButton" type="button" title="Capture photo" aria-label="Capture photo">
+                <svg width="23" height="23" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="6.7" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="10" r="4.1" fill="currentColor"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <input class="visually-hidden" id="fileInput" type="file" accept="image/jpeg,image/png,image/webp">
+      </div>
+      <aside class="side-panel" id="settings" aria-label="Detection controls and results">
+        <h2 class="side-title">Detection results</h2>
+        <p class="side-subtitle">Objects found in your image will show up here.</p>
+        <div class="model-card">
+          <div class="model-row">
+            <span class="model-icon" aria-hidden="true">
+              <svg width="17" height="17" viewBox="0 0 20 20" fill="none"><path d="M10 2.5 3.5 6v8L10 17.5l6.5-3.5V6L10 2.5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="m3.8 6.2 6.2 3.5 6.2-3.5M10 9.8v7.1M6.8 4.3l6.4 3.5" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+            </span>
+            <span><span class="model-name">YOLO11 small</span><span class="model-caption" style="display:block">Server-side detection model</span></span>
+            <span class="model-status"><i class="status-dot" id="modelDot"></i><span id="modelStatus">Starting</span></span>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="results-head">
+          <h3>Detected objects</h3>
+          <span class="count-badge" id="resultCount">0</span>
+        </div>
+        <label class="confidence-label" for="confidenceRange"><span>Minimum confidence</span><strong id="confidenceValue">25%</strong></label>
+        <input id="confidenceRange" type="range" min="5" max="90" value="25" step="5" aria-label="Minimum detection confidence">
+        <p class="confidence-hint" id="confidenceHint">Starts at 25% to reduce false detections. Lower it to find less-certain objects.</p>
+        <div class="results-list" id="resultsList" aria-live="polite">
+          <div class="result-empty">Upload an image to see what the model can find.</div>
+        </div>
+        <button class="primary-button" id="detectButton" type="button" disabled>
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.6"/><path d="m13 13 4 4M8.5 6v5m-2.5-2.5h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <span>Detect objects</span>
+        </button>
+        <div class="notice" id="notice" role="status" aria-live="polite"></div>
+        <div class="privacy-note">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1.8 2.7 4v3.8c0 3.1 2.2 5.4 5.3 6.4 3.1-1 5.3-3.3 5.3-6.4V4L8 1.8Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="m5.8 7.9 1.5 1.5 3-3.1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Images are sent to the app server for detection and are not saved by this app.
+        </div>
+      </aside>
+    </section>
+    <div class="below">
+      <span><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M8 1.8 2.7 4v3.8c0 3.1 2.2 5.4 5.3 6.4 3.1-1 5.3-3.3 5.3-6.4V4L8 1.8Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="m5.8 7.9 1.5 1.5 3-3.1" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg> Images aren't stored</span>
+      <span><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M8 2v6l4 2M14 8a6 6 0 1 1-1.8-4.3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg> Server-side AI</span>
+      <span><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M8 1.5v13M1.5 8h13M3.4 3.4l9.2 9.2m0-9.2-9.2 9.2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg> No account needed</span>
+    </div>
+  </main>
+    </div>
+  </div>
+  <script>
+    (() => {
+      const fileInput = document.getElementById("fileInput");
+      const browseButton = document.getElementById("browseButton");
+      const cameraButton = document.getElementById("cameraButton");
+      const changeImageButton = document.getElementById("changeImageButton");
+      const stageCameraButton = document.getElementById("stageCameraButton");
+      const clearButton = document.getElementById("clearButton");
+      const cameraStage = document.getElementById("cameraStage");
+      const cameraVideo = document.getElementById("cameraVideo");
+      const captureButton = document.getElementById("captureButton");
+      const cancelCameraButton = document.getElementById("cancelCameraButton");
+      const dropzone = document.getElementById("dropzone");
+      const emptyState = document.getElementById("emptyState");
+      const imageStage = document.getElementById("imageStage");
+      const canvas = document.getElementById("previewCanvas");
+      const context = canvas.getContext("2d");
+      const detectButton = document.getElementById("detectButton");
+      const confidenceRange = document.getElementById("confidenceRange");
+      const confidenceValue = document.getElementById("confidenceValue");
+      const confidenceHint = document.getElementById("confidenceHint");
+      const resultsList = document.getElementById("resultsList");
+      const resultCount = document.getElementById("resultCount");
+      const totalObjectsKpi = document.getElementById("totalObjectsKpi");
+      const averageConfidenceKpi = document.getElementById("averageConfidenceKpi");
+      const objectClassesKpi = document.getElementById("objectClassesKpi");
+      const objectCountChart = document.getElementById("objectCountChart");
+      const systemStatusUpdated = document.getElementById("systemStatusUpdated");
+      const cpuUsageValue = document.getElementById("cpuUsageValue");
+      const cpuUsageProgress = document.getElementById("cpuUsageProgress");
+      const cpuUsageBar = document.getElementById("cpuUsageBar");
+      const cpuUsageDetail = document.getElementById("cpuUsageDetail");
+      const memoryUsageValue = document.getElementById("memoryUsageValue");
+      const memoryUsageProgress = document.getElementById("memoryUsageProgress");
+      const memoryUsageBar = document.getElementById("memoryUsageBar");
+      const memoryUsageDetail = document.getElementById("memoryUsageDetail");
+      const storageUsageValue = document.getElementById("storageUsageValue");
+      const storageUsageProgress = document.getElementById("storageUsageProgress");
+      const storageUsageBar = document.getElementById("storageUsageBar");
+      const storageUsageDetail = document.getElementById("storageUsageDetail");
+      const networkReceivedValue = document.getElementById("networkReceivedValue");
+      const networkSentValue = document.getElementById("networkSentValue");
+      const networkUsageDetail = document.getElementById("networkUsageDetail");
+      const imageMeta = document.getElementById("imageMeta");
+      const notice = document.getElementById("notice");
+      const modelStatus = document.getElementById("modelStatus");
+      const modelDot = document.getElementById("modelDot");
+      const navLinks = document.querySelectorAll(".nav-link");
+      const colors = ["#059669", "#10b981", "#047857", "#34d399", "#0f766e", "#6ee7b7"];
+      let backendReady = false;
+      let image = null;
+      let selectedFile = null;
+      let predictions = [];
+      let imageUrl = null;
+      let busy = false;
+      let imageVersion = 0;
+      let pendingDetection = false;
+      let cameraStream = null;
+      let cameraRequestId = 0;
+
+      function setNotice(message, isError) {
+        notice.textContent = message;
+        notice.style.color = isError ? "#a64f3a" : "";
+      }
+
+      function setModelState(text, state) {
+        modelStatus.textContent = text;
+        modelDot.className = `status-dot${state ? ` ${state}` : ""}`;
+      }
+
+      function formatBytes(bytes) {
+        const units = ["B", "KB", "MB", "GB", "TB"];
+        let amount = Math.max(0, bytes);
+        let unitIndex = 0;
+        while (amount >= 1024 && unitIndex < units.length - 1) {
+          amount /= 1024;
+          unitIndex += 1;
+        }
+        const precision = unitIndex === 0 ? 0 : 1;
+        return `${amount.toFixed(precision)} ${units[unitIndex]}`;
+      }
+
+      function updateUsageMetric(valueNode, progressNode, barNode, detailNode, percent, detail) {
+        const boundedPercent = Math.min(100, Math.max(0, percent));
+        valueNode.textContent = String(Math.round(percent));
+        progressNode.setAttribute("aria-valuenow", String(Math.round(boundedPercent)));
+        barNode.style.width = `${boundedPercent}%`;
+        detailNode.textContent = detail;
+      }
+
+      function setSystemStatusUnavailable() {
+        systemStatusUpdated.textContent = "Metrics unavailable";
+        [cpuUsageValue, memoryUsageValue, storageUsageValue].forEach(node => { node.textContent = "—"; });
+        [cpuUsageBar, memoryUsageBar, storageUsageBar].forEach(node => { node.style.width = "0"; });
+        [cpuUsageProgress, memoryUsageProgress, storageUsageProgress].forEach(node => {
+          node.setAttribute("aria-valuenow", "0");
+        });
+        [cpuUsageDetail, memoryUsageDetail, storageUsageDetail, networkUsageDetail].forEach(node => {
+          node.textContent = "The server could not provide this metric.";
+        });
+        networkReceivedValue.textContent = "Unavailable";
+        networkSentValue.textContent = "Unavailable";
+      }
+
+      async function refreshSystemStatus() {
+        try {
+          const response = await fetch("/api/system-status", { cache: "no-store" });
+          const status = await response.json();
+          if (!response.ok) throw new Error(status.error || `System status request failed (${response.status}).`);
+
+          updateUsageMetric(
+            cpuUsageValue, cpuUsageProgress, cpuUsageBar, cpuUsageDetail,
+            status.cpu_percent, "Current server processor load"
+          );
+          updateUsageMetric(
+            memoryUsageValue, memoryUsageProgress, memoryUsageBar, memoryUsageDetail,
+            status.memory.percent,
+            `${formatBytes(status.memory.used_bytes)} of ${formatBytes(status.memory.total_bytes)} used`
+          );
+          updateUsageMetric(
+            storageUsageValue, storageUsageProgress, storageUsageBar, storageUsageDetail,
+            status.storage.percent,
+            `${formatBytes(status.storage.free_bytes)} free of ${formatBytes(status.storage.total_bytes)}`
+          );
+          networkReceivedValue.textContent = status.network.received_bytes_per_second === null
+            ? "Measuring…" : `${formatBytes(status.network.received_bytes_per_second)}/s`;
+          networkSentValue.textContent = status.network.sent_bytes_per_second === null
+            ? "Measuring…" : `${formatBytes(status.network.sent_bytes_per_second)}/s`;
+          networkUsageDetail.textContent = "Live server network throughput";
+          systemStatusUpdated.textContent = `Updated ${new Date().toLocaleTimeString()}`;
+        } catch (error) {
+          console.error("Could not load server system metrics:", error);
+          setSystemStatusUnavailable();
+        }
+      }
+
+      async function checkBackend() {
+        setModelState("Loading", "loading");
+        try {
+          const response = await fetch("/api/health");
+          if (!response.ok) throw new Error(`Backend health check failed (${response.status}).`);
+          await response.json();
+          backendReady = true;
+          setModelState("Connected", "ready");
+          detectButton.disabled = !image || busy;
+          setNotice(image ? "Image ready — analyzing objects…" : "Server connected — add an image to get started.");
+          if (image) detectObjects();
+        } catch (error) {
+          console.error("Could not connect to the detection backend:", error);
+          backendReady = false;
+          setModelState("Unavailable", "");
+          setNotice("Can't connect to the backend. Start the server with py app.py, then refresh this page.", true);
+        }
+      }
+
+      function openPicker() { fileInput.click(); }
+
+      function syncActiveNav() {
+        const currentLink = [...navLinks].find(link => link.getAttribute("href") === location.hash)
+          || [...navLinks].find(link => link.getAttribute("href") === "#dashboard");
+        navLinks.forEach(link => {
+          if (link === currentLink) link.setAttribute("aria-current", "page");
+          else link.removeAttribute("aria-current");
+        });
+      }
+
+      function stopCamera() {
+        cameraRequestId += 1;
+        if (cameraStream) {
+          cameraStream.getTracks().forEach(track => track.stop());
+          cameraStream = null;
+        }
+        cameraVideo.srcObject = null;
+        cameraStage.hidden = true;
+        captureButton.disabled = false;
+      }
+
+      function restorePreview() {
+        imageStage.hidden = !image;
+        emptyState.hidden = Boolean(image);
+        cameraStage.hidden = true;
+        imageMeta.textContent = image
+          ? `${selectedFile.name} · ${image.naturalWidth} × ${image.naturalHeight}`
+          : "No image selected";
+      }
+
+      async function startCamera() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          setNotice("Camera access requires a supported browser and a secure page. Open this site on localhost or HTTPS.", true);
+          return;
+        }
+        const requestId = ++cameraRequestId;
+        setNotice("Requesting camera access…");
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: false,
+            video: { facingMode: { ideal: "environment" } }
+          });
+          if (requestId !== cameraRequestId) {
+            stream.getTracks().forEach(track => track.stop());
+            return;
+          }
+          cameraStream = stream;
+          cameraVideo.srcObject = stream;
+          emptyState.hidden = true;
+          imageStage.hidden = true;
+          cameraStage.hidden = false;
+          imageMeta.textContent = "Live camera preview";
+          await cameraVideo.play();
+          setNotice("Camera ready — take a photo when you're ready.");
+        } catch (error) {
+          if (requestId !== cameraRequestId) return;
+          stopCamera();
+          restorePreview();
+          console.error("Could not access the camera:", error);
+          const messages = {
+            NotAllowedError: "Camera permission was denied. Allow camera access in your browser settings and try again.",
+            NotFoundError: "No camera was found on this device.",
+            NotReadableError: "The camera is already in use by another app."
+          };
+          setNotice(messages[error.name] || "Could not start the camera. Check your camera connection and browser permissions.", true);
+        }
+      }
+
+      async function capturePhoto() {
+        if (!cameraStream || !cameraVideo.videoWidth || !cameraVideo.videoHeight) {
+          setNotice("The camera is not ready yet. Please wait a moment and try again.", true);
+          return;
+        }
+        captureButton.disabled = true;
+        setNotice("Capturing photo…");
+        try {
+          const photoCanvas = document.createElement("canvas");
+          photoCanvas.width = cameraVideo.videoWidth;
+          photoCanvas.height = cameraVideo.videoHeight;
+          photoCanvas.getContext("2d").drawImage(cameraVideo, 0, 0);
+          const blob = await new Promise((resolve, reject) => {
+            photoCanvas.toBlob(
+              result => result ? resolve(result) : reject(new Error("The camera photo could not be saved. Please try again.")),
+              "image/jpeg",
+              0.9
+            );
+          });
+          stopCamera();
+          await useFile(new File([blob], `camera-${Date.now()}.jpg`, { type: "image/jpeg" }));
+        } catch (error) {
+          console.error("Could not capture a camera photo:", error);
+          captureButton.disabled = false;
+          setNotice(error.message || "Could not capture a photo. Please try again.", true);
+        }
+      }
+
+      function cancelCamera() {
+        stopCamera();
+        restorePreview();
+        setNotice(backendReady ? "Camera closed." : "Camera closed. Waiting for the backend.");
+      }
+
+      function updateAnalytics(visiblePredictions = predictions) {
+        totalObjectsKpi.textContent = String(visiblePredictions.length);
+        const confidenceScores = visiblePredictions
+          .map(item => Number(item.score))
+          .filter(Number.isFinite);
+        averageConfidenceKpi.textContent = confidenceScores.length
+          ? `${(confidenceScores.reduce((sum, score) => sum + score, 0) / confidenceScores.length * 100).toFixed(1)}%`
+          : "—";
+        const classCounts = new Map();
+        visiblePredictions.forEach(item => {
+          const label = String(item.class || "unknown").trim() || "unknown";
+          const key = label.toLowerCase();
+          const entry = classCounts.get(key) || { label, count: 0 };
+          entry.count += 1;
+          classCounts.set(key, entry);
+        });
+        const sortedClasses = [...classCounts.values()].sort((left, right) =>
+          right.count - left.count || left.label.localeCompare(right.label)
+        );
+        objectClassesKpi.textContent = String(sortedClasses.length);
+        objectCountChart.replaceChildren();
+        if (!sortedClasses.length) {
+          const empty = document.createElement("div");
+          empty.className = "chart-empty";
+          empty.textContent = image ? "No objects meet the current confidence level." : "Upload an image to see object counts.";
+          objectCountChart.append(empty);
+          return;
+        }
+        const maximumCount = sortedClasses[0].count;
+        sortedClasses.forEach(({ label, count }) => {
+          const row = document.createElement("div");
+          row.className = "object-chart-row";
+          row.setAttribute("role", "listitem");
+          row.setAttribute("aria-label", `${label}: ${count} ${count === 1 ? "object" : "objects"}`);
+          const name = document.createElement("span");
+          name.className = "object-chart-label";
+          name.textContent = label;
+          const track = document.createElement("span");
+          track.className = "object-chart-track";
+          track.setAttribute("aria-hidden", "true");
+          const bar = document.createElement("span");
+          bar.className = "object-chart-bar";
+          bar.style.width = `${count / maximumCount * 100}%`;
+          track.append(bar);
+          const value = document.createElement("span");
+          value.className = "object-chart-count";
+          value.textContent = String(count);
+          row.append(name, track, value);
+          objectCountChart.append(row);
+        });
+      }
+
+      function renderResults() {
+        const minimum = Number(confidenceRange.value) / 100;
+        const visible = predictions.filter(item => item.score >= minimum);
+        updateAnalytics(visible);
+        resultCount.textContent = String(visible.length);
+        resultsList.replaceChildren();
+
+        if (!predictions.length) {
+          const empty = document.createElement("div");
+          empty.className = "result-empty";
+          empty.textContent = image ? "No objects detected yet. Run detection to see results." : "Upload an image to see what the model can find.";
+          resultsList.append(empty);
+        } else if (!visible.length) {
+          const empty = document.createElement("div");
+          empty.className = "result-empty";
+          empty.textContent = "No objects meet this confidence level. Try lowering the minimum.";
+          resultsList.append(empty);
+        } else {
+          visible.forEach((item, index) => {
+            const row = document.createElement("div");
+            row.className = "result-item";
+            const swatch = document.createElement("span");
+            swatch.className = "result-swatch";
+            swatch.style.backgroundColor = colors[index % colors.length];
+            const label = document.createElement("span");
+            label.className = "result-label";
+            label.textContent = item.class;
+            const score = document.createElement("span");
+            score.className = "result-confidence";
+            score.textContent = `${Math.round(item.score * 100)}%`;
+            row.append(swatch, label, score);
+            resultsList.append(row);
+          });
+        }
+        drawImage(visible);
+      }
+
+      function drawImage(visiblePredictions) {
+        if (!image) return;
+        const width = image.naturalWidth;
+        const height = image.naturalHeight;
+        canvas.width = width;
+        canvas.height = height;
+        context.clearRect(0, 0, width, height);
+        context.drawImage(image, 0, 0, width, height);
+        const scale = Math.max(1, Math.min(width, height) / 360);
+        context.lineWidth = Math.max(2, 2.2 * scale);
+        context.font = `600 ${Math.max(12, 13 * scale)}px "Poppins", sans-serif`;
+        visiblePredictions.forEach((item, index) => {
+          const [x, y, boxWidth, boxHeight] = item.bbox;
+          const color = colors[index % colors.length];
+          context.strokeStyle = color;
+          context.fillStyle = color;
+          context.strokeRect(x, y, boxWidth, boxHeight);
+          const label = `${item.class} ${Math.round(item.score * 100)}%`;
+          const labelWidth = context.measureText(label).width + 14 * scale;
+          const labelHeight = 25 * scale;
+          const labelY = Math.max(0, y - labelHeight);
+          context.fillRect(x, labelY, labelWidth, labelHeight);
+          context.fillStyle = "#fff";
+          context.fillText(label, x + 7 * scale, labelY + 17 * scale);
+        });
+      }
+
+      async function useFile(file) {
+        if (!file) return;
+        if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+          setNotice("Please choose a JPG, PNG, or WEBP image.", true);
+          return;
+        }
+        if (file.size > 15 * 1024 * 1024) {
+          setNotice("That image is larger than 15 MB. Please choose a smaller file.", true);
+          return;
+        }
+        imageVersion += 1;
+        pendingDetection = false;
+        confidenceRange.value = "25";
+        confidenceValue.textContent = "25%";
+        confidenceHint.textContent = "Starts at 25% to reduce false detections. Lower it to find less-certain objects.";
+        stopCamera();
+        if (imageUrl) URL.revokeObjectURL(imageUrl);
+        imageUrl = URL.createObjectURL(file);
+        const nextImage = new Image();
+        nextImage.onload = () => {
+          image = nextImage;
+          selectedFile = file;
+          predictions = [];
+          emptyState.hidden = true;
+          imageStage.hidden = false;
+          cameraStage.hidden = true;
+          imageMeta.textContent = `${file.name} · ${nextImage.naturalWidth} × ${nextImage.naturalHeight}`;
+          detectButton.disabled = !backendReady || busy;
+          drawImage([]);
+          renderResults();
+          if (backendReady) {
+            setNotice("Image ready — analyzing objects…");
+            detectObjects();
+          } else {
+            setNotice("Image ready — waiting for the backend.");
+          }
+        };
+        nextImage.onerror = () => {
+          URL.revokeObjectURL(imageUrl);
+          imageUrl = null;
+          setNotice("This image could not be opened. Please try a different file.", true);
+        };
+        nextImage.src = imageUrl;
+      }
+
+      async function detectObjects() {
+        if (!image || !selectedFile || !backendReady) return;
+        if (busy) {
+          pendingDetection = true;
+          return;
+        }
+        busy = true;
+        pendingDetection = false;
+        const detectionVersion = imageVersion;
+        const fileToDetect = selectedFile;
+        detectButton.disabled = true;
+        detectButton.querySelector("span").textContent = "Detecting…";
+        setNotice("Sending your image to the server for analysis…");
+        try {
+          const formData = new FormData();
+          formData.append("image", fileToDetect);
+          const response = await fetch("/api/detect", {
+            method: "POST",
+            body: formData
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || "The server could not analyze this image.");
+          if (detectionVersion !== imageVersion) return;
+          predictions = data.predictions;
+          renderResults();
+          const visibleCount = predictions.filter(item => item.score >= Number(confidenceRange.value) / 100).length;
+          setNotice(visibleCount ? `Done — found ${visibleCount} ${visibleCount === 1 ? "object" : "objects"} above the confidence threshold.` : "No objects meet this confidence level. Try lowering the minimum.");
+        } catch (error) {
+          if (detectionVersion !== imageVersion) return;
+          console.error("Image detection failed:", error);
+          setNotice(error.message || "Detection failed. Try again.", true);
+        } finally {
+          busy = false;
+          detectButton.querySelector("span").textContent = "Detect objects";
+          detectButton.disabled = !image || !backendReady;
+          if (pendingDetection && image && backendReady) detectObjects();
+        }
+      }
+
+      function clearImage() {
+        imageVersion += 1;
+        pendingDetection = false;
+        stopCamera();
+        if (imageUrl) URL.revokeObjectURL(imageUrl);
+        imageUrl = null;
+        image = null;
+        selectedFile = null;
+        predictions = [];
+        fileInput.value = "";
+        imageStage.hidden = true;
+        emptyState.hidden = false;
+        imageMeta.textContent = "No image selected";
+        resultCount.textContent = "0";
+        predictions = [];
+        updateAnalytics();
+        resultsList.innerHTML = '<div class="result-empty">Upload an image to see what the model can find.</div>';
+        setNotice(backendReady ? "Server connected — add an image to get started." : "");
+        detectButton.disabled = true;
+      }
+
+      browseButton.addEventListener("click", openPicker);
+      window.addEventListener("hashchange", syncActiveNav);
+      cameraButton.addEventListener("click", startCamera);
+      changeImageButton.addEventListener("click", openPicker);
+      stageCameraButton.addEventListener("click", startCamera);
+      captureButton.addEventListener("click", capturePhoto);
+      cancelCameraButton.addEventListener("click", cancelCamera);
+      clearButton.addEventListener("click", clearImage);
+      fileInput.addEventListener("change", event => {
+        useFile(event.target.files[0]);
+        event.target.value = "";
+      });
+      detectButton.addEventListener("click", detectObjects);
+      confidenceRange.addEventListener("input", () => {
+        confidenceValue.textContent = `${confidenceRange.value}%`;
+        confidenceHint.textContent = "Manual filter — raise the threshold to hide lower-confidence objects.";
+        renderResults();
+        if (image && predictions.length) {
+          const visibleCount = predictions.filter(item => item.score >= Number(confidenceRange.value) / 100).length;
+          setNotice(visibleCount
+            ? `Showing ${visibleCount} ${visibleCount === 1 ? "object" : "objects"} above the confidence threshold.`
+            : "No objects meet this confidence level. Try lowering the minimum.");
+        }
+      });
+      dropzone.addEventListener("dragover", event => {
+        event.preventDefault();
+        dropzone.classList.add("dragging");
+      });
+      dropzone.addEventListener("dragleave", event => {
+        if (!dropzone.contains(event.relatedTarget)) dropzone.classList.remove("dragging");
+      });
+      dropzone.addEventListener("drop", event => {
+        event.preventDefault();
+        dropzone.classList.remove("dragging");
+        useFile(event.dataTransfer.files[0]);
+      });
+      document.addEventListener("keydown", event => {
+        if (event.key === "Escape" && cameraStream) cancelCamera();
+        else if (event.key === "Escape" && image) clearImage();
+      });
+
+      window.addEventListener("pagehide", stopCamera);
+
+      syncActiveNav();
+      checkBackend();
+      refreshSystemStatus();
+      window.setInterval(refreshSystemStatus, 5000);
+    })();
+  </script>
+</body>
+</html>
